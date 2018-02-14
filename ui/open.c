@@ -17,7 +17,9 @@ int main(int argc, char **argv) {
     FILE *sm_file;
 
     xmss_params params;
-    uint32_t oid;
+    uint32_t oid = 0;
+    u_int8_t buffer[XMSS_OID_LEN];
+    int parse_oid_result;
 
     unsigned long long smlen;
     int ret;
@@ -46,8 +48,13 @@ int main(int argc, char **argv) {
     fseek(sm_file, 0, SEEK_END);
     smlen = ftell(sm_file);
 
-    fread(&oid, 1, XMSS_OID_LEN, keypair_file);
-    XMSS_PARSE_OID(&params, oid);
+    fread(&buffer, 1, XMSS_OID_LEN, keypair_file);
+    oid = (buffer[3] << 0 | buffer[2] << 8 | buffer[1] << 16 | buffer[0] << 24);
+    parse_oid_result = XMSS_PARSE_OID(&params, oid);
+    if (parse_oid_result != 0) {
+        fprintf(stderr, "Error parsing oid.\n");
+        return parse_oid_result;
+    }
 
     unsigned char pk[XMSS_OID_LEN + params.pk_bytes];
     unsigned char *sm = malloc(smlen);

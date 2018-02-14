@@ -17,8 +17,10 @@ int main(int argc, char **argv) {
     FILE *m_file;
 
     xmss_params params;
-    uint32_t oid_pk;
-    uint32_t oid_sk;
+    uint32_t oid_pk = 0;
+    uint32_t oid_sk = 0;
+    u_int8_t buffer[XMSS_OID_LEN];
+    int parse_oid_result;
 
     unsigned long long mlen;
 
@@ -47,14 +49,26 @@ int main(int argc, char **argv) {
     mlen = ftell(m_file);
 
     /* Read the OID from the public key, as we need its length to seek past it */
-    fread(&oid_pk, 1, XMSS_OID_LEN, keypair_file);
-    XMSS_PARSE_OID(&params, oid_pk);
+    fread(&buffer, 1, XMSS_OID_LEN, keypair_file);
+    // The XMSS_OID_LEN bytes in buffer are a big-endian uint32.
+    // Code borrowed from https://commandcenter.blogspot.ca/2012/04/byte-order-fallacy.html
+    oid_pk = (buffer[3] << 0 | buffer[2] << 8 | buffer[1] << 16 | buffer[0] << 24);
+    parse_oid_result = XMSS_PARSE_OID(&params, oid_pk);
+    if (parse_oid_result != 0) {
+        fprintf(stderr, "Error parsing public key oid.\n");
+        return parse_oid_result;
+    }
 
     /* fseek past the public key */
     fseek(keypair_file, params.pk_bytes, SEEK_CUR);
     /* This is the OID we're actually going to use. Likely the same, but still. */
-    fread(&oid_sk, 1, XMSS_OID_LEN, keypair_file);
-    XMSS_PARSE_OID(&params, oid_sk);
+    fread(&buffer, 1, XMSS_OID_LEN, keypair_file);
+    oid_sk = (buffer[3] << 0 | buffer[2] << 8 | buffer[1] << 16 | buffer[0] << 24);
+    parse_oid_result = XMSS_PARSE_OID(&params, oid_sk);
+    if (parse_oid_result != 0) {
+        fprintf(stderr, "Error parsing secret key oid.\n");
+        return parse_oid_result;
+    }
 
     unsigned char sk[XMSS_OID_LEN + params.sk_bytes];
     unsigned char *m = malloc(mlen);
