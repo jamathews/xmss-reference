@@ -3,6 +3,7 @@
 
 #include "../params.h"
 #include "../xmss.h"
+#include "../utils.h"
 
 #ifdef XMSSMT
     #define XMSS_PARSE_OID xmssmt_parse_oid
@@ -49,7 +50,7 @@ int main(int argc, char **argv) {
     smlen = ftell(sm_file);
 
     fread(&buffer, 1, XMSS_OID_LEN, keypair_file);
-    oid = (buffer[3] << 0 | buffer[2] << 8 | buffer[1] << 16 | buffer[0] << 24);
+    oid = (uint32_t)bytes_to_ull(buffer, XMSS_OID_LEN);
     parse_oid_result = XMSS_PARSE_OID(&params, oid);
     if (parse_oid_result != 0) {
         fprintf(stderr, "Error parsing oid.\n");
