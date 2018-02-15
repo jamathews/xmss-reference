@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
 
     xmss_params params;
     uint32_t oid = 0;
-    u_int8_t buffer[XMSS_OID_LEN];
+    uint8_t buffer[XMSS_OID_LEN];
     int parse_oid_result;
 
     unsigned long long smlen;
