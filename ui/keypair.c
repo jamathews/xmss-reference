@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "../params.h"
 #include "../xmss.h"
@@ -20,10 +21,10 @@ int main(int argc, char **argv)
     uint32_t oid = 0;
     int parse_oid_result = 0;
 
-    if (argc != 2) {
-        fprintf(stderr, "Expected parameter string (e.g. 'XMSS-SHA2_10_256')"
-                        " as only parameter.\n"
-                        "The keypair is written to stdout.\n");
+    if (argc != 4) {
+        fprintf(stderr, "Expected 3 parameters: xmss parameter string (e.g. 'XMSS-SHA2_10_256'), public_key_file, secret_key_file.\n"
+                        "Example:\n\n"
+                        "xmss_keypair XMSS-SHA2_10_256 public_key.dat secret_key.dat\n\n");
         return -1;
     }
 
@@ -39,10 +40,15 @@ int main(int argc, char **argv)
 
     XMSS_KEYPAIR(pk, sk, oid);
 
-    fwrite(pk, 1, XMSS_OID_LEN + params.pk_bytes, stdout);
-    fwrite(sk, 1, XMSS_OID_LEN + params.sk_bytes, stdout);
+    FILE *pk_file = fopen(argv[2], "wb");
+    FILE *sk_file = fopen(argv[3], "wb");
+
+    fwrite(pk, 1, XMSS_OID_LEN + params.pk_bytes, pk_file);
+    fwrite(sk, 1, XMSS_OID_LEN + params.sk_bytes, sk_file);
 
     fclose(stdout);
+    fclose(pk_file);
+    fclose(sk_file);
 
     return 0;
 }

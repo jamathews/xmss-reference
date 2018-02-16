@@ -16,6 +16,8 @@
 int main(int argc, char **argv) {
     FILE *keypair_file;
     FILE *m_file;
+    FILE *sm_file;
+    FILE *sig_file;
 
     xmss_params params;
     uint32_t oid_pk = 0;
@@ -25,11 +27,14 @@ int main(int argc, char **argv) {
 
     unsigned long long mlen;
 
-    if (argc != 3) {
+    if (argc != 5) {
         fprintf(stderr, "Expected keypair and message filenames as two "
-                        "parameters.\n"
+                        "parameters, followed by a sig+message output file as the third parameter,\n"
+                        "and a sig-only file as the fourth parameter.\n"
                         "The keypair is updated with the changed state, "
-                        "and the message + signature is output via stdout.\n");
+                        "and the message + signature is output to the output file.\n"
+                        "Example:\n\n"
+                        "xmss_sign keypair.dat message.dat sig_message.dat sig.dat\n\n");
         return -1;
     }
 
@@ -46,6 +51,23 @@ int main(int argc, char **argv) {
         return -1;
     }
 
+    sm_file = fopen(argv[3], "wb");
+    if (sm_file == NULL) {
+        fprintf(stderr, "Could not open sig+message output file.\n");
+        fclose(keypair_file);
+        fclose(m_file);
+        return -1;
+    }
+
+    sig_file = fopen(argv[4], "wb");
+    if (sig_file == NULL) {
+        fprintf(stderr, "Could not open sig-only output file.\n");
+        fclose(keypair_file);
+        fclose(m_file);
+        fclose(sm_file);
+        return -1;
+    }
+
     /* Find out the message length. */
     fseek(m_file, 0, SEEK_END);
     mlen = ftell(m_file);
@@ -59,6 +81,8 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Error parsing public key oid.\n");
         fclose(keypair_file);
         fclose(m_file);
+        fclose(sm_file);
+        fclose(sig_file);
         return parse_oid_result;
     }
 
@@ -72,6 +96,8 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Error parsing secret key oid.\n");
         fclose(keypair_file);
         fclose(m_file);
+        fclose(sm_file);
+        fclose(sig_file);
         return parse_oid_result;
     }
 
@@ -90,10 +116,13 @@ int main(int argc, char **argv) {
 
     fseek(keypair_file, -((long int)params.sk_bytes), SEEK_CUR);
     fwrite(sk + XMSS_OID_LEN, 1, params.sk_bytes, keypair_file);
-    fwrite(sm, 1, smlen, stdout);
+    fwrite(sm, 1, smlen, sm_file);
+    fwrite(sm, 1, smlen - mlen, sig_file);
 
     fclose(keypair_file);
     fclose(m_file);
+    fclose(sm_file);
+    fclose(sig_file);
 
     free(m);
     free(sm);
